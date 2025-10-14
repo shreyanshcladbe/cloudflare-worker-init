@@ -131,7 +131,7 @@ The `src/` directory contains the main application logic, organized into subdire
 - `src/routes/`\
   Contains route definitions that map HTTP endpoints to controller functions. Routes use controllers to handle requests, which in turn leverage helpers, middlewares, and models. Organize routes by feature or resource (e.g., `user.routes.ts`, `message.routes.ts`).
 
-- `src/server.ts`\
+- `src/index.ts`\
   The entry point of the application. This file sets up the Cloudflare Worker, initializes routes, and applies global middleware or configuration setup (e.g., from `src/configs/`).
 
 - `src/types/`\
@@ -148,7 +148,7 @@ The `test/` directory contains test files and configurations for testing the app
   A TypeScript declaration file for defining types related to the test environment, such as mocked APIs or environment variables used in tests.
 
 - `test/index.spec.ts`\
-  Contains test cases for the main application logic, typically testing the entry point (`server.ts`) or core functionality. Follow a naming convention like `*.spec.ts` or `*.test.ts` for test files.
+  Contains test cases for the main application logic, typically testing the entry point (`index.ts`) or core functionality. Follow a naming convention like `*.spec.ts` or `*.test.ts` for test files.
 
 - `test/tsconfig.json`\
   A TypeScript configuration file specific to the test environment. It may extend the root `tsconfig.json` and include test-specific settings, such as paths to test utilities or mocks.
@@ -164,14 +164,14 @@ The application follows a modular flow where:
    - Using **models** (`src/models/`) to structure and persist data to a database according to defined interfaces or schemas.
    - Leveraging **utils** (`src/utils/`) for general-purpose tasks like string manipulation or currency formatting.
 3. **Configurations** (`src/configs/`) provide initialized clients (e.g., Redis via `redis.config.ts`) or settings for external services, used by helpers or controllers.
-4. The **entry point** (`src/server.ts`) ties everything together, setting up the worker and routing logic.
+4. The **entry point** (`src/index.ts`) ties everything together, setting up the worker and routing logic.
 
 ## Getting Started
 
 1. **Install Dependencies**: Run `npm install` or `yarn install` to set up the project and generate the `node_modules/` folder.
 2. **Development**:
    - Place application logic in the `src/` directory, organized into `configs/`, `controllers/`, `helpers/`, `middlewares/`, `models/`, `routes/`, `types/`, and `utils/`.
-   - Use `server.ts` as the entry point for the worker.
+   - Use `index.ts` as the entry point for the worker.
    - Configure external services in `src/configs/` (e.g., `redis.config.ts` for Redis).
 3. **Testing**:
    - Write tests in the `test/` directory, using `index.spec.ts` for core tests and adding feature-specific tests as needed.
@@ -264,7 +264,7 @@ echo "├── helpers"
 echo "├── middlewares"
 echo "├── models"
 echo "├── routes"
-echo "├── server.ts"
+echo "├── index.ts"
 echo "├── types"
 echo "└── utils"
 echo ""

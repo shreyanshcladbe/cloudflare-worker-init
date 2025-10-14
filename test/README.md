@@ -1,77 +1,3 @@
-#!/bin/bash
-
-# Colors for output
-ORANGE='\033[0;33m'  # Highlight color
-WHITE='\033[0;37m'   # Regular text color
-NC='\033[0m'         # No Color
-
-echo -e "${WHITE}========================================${NC}"
-echo -e "${WHITE}Cloudflare Worker Project Setup${NC}"
-echo -e "${WHITE}========================================${NC}"
-echo ""
-
-# Use command-line argument or environment variable for project name, fallback to prompt
-if [ -n "$1" ]; then
-    PROJECT_NAME="$1"
-elif [ -n "$PROJECT_NAME" ]; then
-    : # Use environment variable if set
-else
-    echo -e "${ORANGE}Enter the name of your project:${NC}"
-    read -r PROJECT_NAME
-fi
-
-if [ -z "$PROJECT_NAME" ]; then
-    echo -e "${ORANGE}No project name provided. Exiting.${NC}"
-    exit 1
-fi
-
-echo -e "${WHITE}Creating project: $PROJECT_NAME${NC}"
-echo ""
-
-# Run create-cloudflare with CLI arguments for non-interactive setup
-echo -e "${WHITE}Running create-cloudflare...${NC}"
-echo -e "${ORANGE}This may take a few minutes while dependencies are installed...${NC}"
-echo ""
-
-npx create-cloudflare@latest --platform=workers "$PROJECT_NAME" \
-    --category=hello-world \
-    --type=hello-world \
-    --lang=ts \
-    --git=true \
-    --deploy=false || {
-    echo -e "${ORANGE}Error during create-cloudflare. Please check logs above and try manually if needed.${NC}"
-    exit 1
-}
-
-echo ""
-echo -e "${WHITE}Project initialization completed!${NC}"
-echo ""
-
-# Wait a moment for all file operations to complete
-sleep 2
-
-# Navigate to project directory
-if [ ! -d "$PROJECT_NAME" ]; then
-    echo -e "${ORANGE}Error: Project directory was not created. Exiting.${NC}"
-    exit 1
-fi
-
-cd "$PROJECT_NAME" || {
-    echo -e "${ORANGE}Error: Could not navigate to project directory.${NC}"
-    exit 1
-}
-
-# Add comment to wrangler.jsonc
-echo -e "${WHITE}Configuring wrangler.jsonc...${NC}"
-TEMP_FILE=$(mktemp)
-echo "// PLACE ENVIORNMENT VARIABLES OVER HERE INSTEAD OF .env BECAUSE ITS A WRANGLER PROJECT AND WRANGLER USES THIS FILE TO LOAD" > "$TEMP_FILE"
-echo "// ENIVORNMENT VARIABLES" >> "$TEMP_FILE"
-cat wrangler.jsonc >> "$TEMP_FILE"
-mv "$TEMP_FILE" wrangler.jsonc
-
-# Create README.md
-echo -e "${WHITE}Creating README.md...${NC}"
-cat > README.md << 'READMEEOF'
 # Template Worker Project
 
 This repository contains the codebase for a Cloudflare worker built with TypeScript and deployed using Cloudflare Workers. The project is structured to separate concerns, with controllers orchestrating logic by combining helpers, middlewares, models, and utils. Below is an explanation of the folder structure and the purpose of each file and directory.
@@ -131,7 +57,7 @@ The `src/` directory contains the main application logic, organized into subdire
 - `src/routes/`\
   Contains route definitions that map HTTP endpoints to controller functions. Routes use controllers to handle requests, which in turn leverage helpers, middlewares, and models. Organize routes by feature or resource (e.g., `user.routes.ts`, `message.routes.ts`).
 
-- `src/index.ts`\
+- `src/server.ts`\
   The entry point of the application. This file sets up the Cloudflare Worker, initializes routes, and applies global middleware or configuration setup (e.g., from `src/configs/`).
 
 - `src/types/`\
@@ -148,7 +74,7 @@ The `test/` directory contains test files and configurations for testing the app
   A TypeScript declaration file for defining types related to the test environment, such as mocked APIs or environment variables used in tests.
 
 - `test/index.spec.ts`\
-  Contains test cases for the main application logic, typically testing the entry point (`index.ts`) or core functionality. Follow a naming convention like `*.spec.ts` or `*.test.ts` for test files.
+  Contains test cases for the main application logic, typically testing the entry point (`server.ts`) or core functionality. Follow a naming convention like `*.spec.ts` or `*.test.ts` for test files.
 
 - `test/tsconfig.json`\
   A TypeScript configuration file specific to the test environment. It may extend the root `tsconfig.json` and include test-specific settings, such as paths to test utilities or mocks.
@@ -164,14 +90,14 @@ The application follows a modular flow where:
    - Using **models** (`src/models/`) to structure and persist data to a database according to defined interfaces or schemas.
    - Leveraging **utils** (`src/utils/`) for general-purpose tasks like string manipulation or currency formatting.
 3. **Configurations** (`src/configs/`) provide initialized clients (e.g., Redis via `redis.config.ts`) or settings for external services, used by helpers or controllers.
-4. The **entry point** (`src/index.ts`) ties everything together, setting up the worker and routing logic.
+4. The **entry point** (`src/server.ts`) ties everything together, setting up the worker and routing logic.
 
 ## Getting Started
 
 1. **Install Dependencies**: Run `npm install` or `yarn install` to set up the project and generate the `node_modules/` folder.
 2. **Development**:
    - Place application logic in the `src/` directory, organized into `configs/`, `controllers/`, `helpers/`, `middlewares/`, `models/`, `routes/`, `types/`, and `utils/`.
-   - Use `index.ts` as the entry point for the worker.
+   - Use `server.ts` as the entry point for the worker.
    - Configure external services in `src/configs/` (e.g., `redis.config.ts` for Redis).
 3. **Testing**:
    - Write tests in the `test/` directory, using `index.spec.ts` for core tests and adding feature-specific tests as needed.
@@ -192,38 +118,3 @@ The application follows a modular flow where:
 - Define custom types in `src/types/` to ensure type safety across the application.
 - Regularly update `package.json` and `package-lock.json` when adding or updating dependencies.
 - Avoid committing the `node_modules/` folder to version control; ensure it's excluded via `.gitignore`.
-READMEEOF
-
-# Create folder structure in src
-echo -e "${WHITE}Creating folder structure...${NC}"
-mkdir -p src/configs
-mkdir -p src/controllers
-mkdir -p src/helpers
-mkdir -p src/middlewares
-mkdir -p src/models
-mkdir -p src/routes
-mkdir -p src/types
-mkdir -p src/utils
-
-echo ""
-echo -e "${WHITE}========================================${NC}"
-echo -e "${WHITE}Setup Complete!${NC}"
-echo -e "${WHITE}========================================${NC}"
-echo ""
-echo -e "${WHITE}Your project structure:${NC}"
-echo "."
-echo "├── configs"
-echo "├── controllers"
-echo "├── helpers"
-echo "├── middlewares"
-echo "├── models"
-echo "├── routes"
-echo "├── index.ts"
-echo "├── types"
-echo "└── utils"
-echo ""
-echo -e "${ORANGE}Next steps:${NC}"
-echo "1. cd $PROJECT_NAME"
-echo "2. npm run start    (to start development server)"
-echo "3. npm run deploy   (to deploy to Cloudflare)"
-echo ""

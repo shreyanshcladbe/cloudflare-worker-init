@@ -2,16 +2,17 @@
 
 # ============================================================================
 # Cloudflare Worker Project Setup Script
-# Claude Code CLI-style animations using pure bash
+# Claude Code CLI-style with Docker-inspired spinner
 # ============================================================================
 
-# Minimalist Color Palette (Claude Code style)
+# Minimalist Color Palette with Orange Highlights
 GRAY='\033[38;5;240m'
 LIGHT_GRAY='\033[38;5;250m'
 BLUE='\033[38;5;75m'
 GREEN='\033[38;5;78m'
 RED='\033[38;5;203m'
 YELLOW='\033[38;5;221m'
+ORANGE='\033[38;5;214m'
 CYAN='\033[38;5;117m'
 WHITE='\033[37m'
 BOLD='\033[1m'
@@ -19,23 +20,22 @@ DIM='\033[2m'
 NC='\033[0m'
 
 # ============================================================================
-# Claude Code-style Animation Functions
+# Animation Functions
 # ============================================================================
 
-# Simple dots animation (Claude Code style)
-show_loading() {
-    local message="$1"
-    local pid=$2
-    local dots=0
+# Docker-style spinner (rotating line)
+docker_spinner() {
+    local pid=$1
+    local message=$2
+    local delay=0.1
+    local spinstr='|/-\'
+    local temp
 
     while kill -0 $pid 2>/dev/null; do
-        local dot_str=""
-        for ((i=0; i<dots; i++)); do
-            dot_str="${dot_str}."
-        done
-        printf "\r  ${GRAY}${message}${dot_str}   ${NC}"
-        dots=$(( (dots + 1) % 4 ))
-        sleep 0.4
+        temp="${spinstr#?}"
+        printf "\r  ${BLUE}[%c]${NC} ${LIGHT_GRAY}%s${NC}" "$spinstr" "$message"
+        spinstr="$temp${spinstr%"$temp"}"
+        sleep $delay
     done
 
     wait $pid
@@ -46,25 +46,31 @@ show_loading() {
 print_step() {
     local message="$1"
     echo ""
-    printf "${DIM}→${NC} ${WHITE}${message}${NC}\n"
+    printf "${DIM}→${NC} ${ORANGE}${message}${NC}\n"
 }
 
 # Success message (subtle)
 print_success() {
     local message="$1"
-    printf "\r  ${GREEN}✓${NC} ${LIGHT_GRAY}${message}${NC}\n"
+    printf "\r  ${GREEN}✓${NC} ${LIGHT_GRAY}%s${NC}\n" "$message"
 }
 
 # Error message
 print_error() {
     local message="$1"
-    printf "\r  ${RED}✗${NC} ${WHITE}${message}${NC}\n"
+    printf "\r  ${RED}✗${NC} ${WHITE}%s${NC}\n" "$message"
 }
 
 # Info message
 print_info() {
     local message="$1"
-    printf "  ${DIM}${message}${NC}\n"
+    printf "  ${DIM}%s${NC}\n" "$message"
+}
+
+# Highlight message (orange)
+print_highlight() {
+    local message="$1"
+    printf "  ${ORANGE}%s${NC}\n" "$message"
 }
 
 # Section divider (subtle)
@@ -78,11 +84,11 @@ print_divider() {
 print_header() {
     local text="$1"
     echo ""
-    printf "${BOLD}${WHITE}${text}${NC}\n"
+    printf "${BOLD}${ORANGE}${text}${NC}\n"
     echo ""
 }
 
-# Simple progress indicator (Claude Code style)
+# Simple progress indicator
 show_progress() {
     local current=$1
     local total=$2
@@ -91,8 +97,8 @@ show_progress() {
     printf "  ${DIM}[${current}/${total}]${NC} ${LIGHT_GRAY}${item}${NC}\n"
 }
 
-# Spinner for background tasks (simple dots)
-run_with_loading() {
+# Run command with Docker-style spinner
+run_with_spinner() {
     local message="$1"
     shift
     local cmd="$@"
@@ -100,7 +106,7 @@ run_with_loading() {
     $cmd > /tmp/cmd_output.log 2>&1 &
     local pid=$!
 
-    show_loading "$message" $pid
+    docker_spinner $pid "$message"
     local exit_code=$?
 
     if [ $exit_code -eq 0 ]; then
@@ -128,12 +134,12 @@ print_header "Cloudflare Worker Setup"
 # Project name input
 if [ -n "$1" ]; then
     PROJECT_NAME="$1"
-    print_info "Project: ${PROJECT_NAME}"
+    print_info "Project: ${ORANGE}${PROJECT_NAME}${NC}"
 elif [ -n "$PROJECT_NAME" ]; then
-    print_info "Project: ${PROJECT_NAME}"
+    print_info "Project: ${ORANGE}${PROJECT_NAME}${NC}"
 else
     echo ""
-    printf "  ${LIGHT_GRAY}Project name: ${NC}"
+    printf "  ${ORANGE}Project name:${NC} "
     read -r PROJECT_NAME
 fi
 
@@ -157,7 +163,7 @@ npx create-cloudflare@latest --platform=workers "$PROJECT_NAME" \
     --git=true \
     --deploy=false > /tmp/create_output.log 2>&1 &
 
-show_loading "Installing dependencies" $!
+docker_spinner $! "Installing dependencies and setting up project"
 
 if [ $? -ne 0 ]; then
     print_error "Project initialization failed"
@@ -187,19 +193,26 @@ print_divider
 
 # Step 2: Configure files
 print_step "Configuring project files"
+echo ""
 
-# Configure wrangler.jsonc
-TEMP_FILE=$(mktemp)
-{
-    echo "// PLACE ENVIORNMENT VARIABLES OVER HERE INSTEAD OF .env BECAUSE ITS A WRANGLER PROJECT AND WRANGLER USES THIS FILE TO LOAD"
-    echo "// ENIVORNMENT VARIABLES"
-    cat wrangler.jsonc
-} > "$TEMP_FILE"
-mv "$TEMP_FILE" wrangler.jsonc
+# Configure wrangler.jsonc with spinner
+(
+    TEMP_FILE=$(mktemp)
+    {
+        echo "// PLACE ENVIORNMENT VARIABLES OVER HERE INSTEAD OF .env BECAUSE ITS A WRANGLER PROJECT AND WRANGLER USES THIS FILE TO LOAD"
+        echo "// ENIVORNMENT VARIABLES"
+        cat wrangler.jsonc
+    } > "$TEMP_FILE"
+    mv "$TEMP_FILE" wrangler.jsonc
+    sleep 0.3
+) &
 
+docker_spinner $! "Configuring wrangler.jsonc"
+wait $!
 print_success "Configured wrangler.jsonc"
 
-# Create README.md
+# Create README.md with spinner
+(
 cat > README.md << 'READMEEOF'
 # Template Worker Project
 
@@ -322,10 +335,15 @@ The application follows a modular flow where:
 - Regularly update `package.json` and `package-lock.json` when adding or updating dependencies.
 - Avoid committing the `node_modules/` folder to version control; ensure it's excluded via `.gitignore`.
 READMEEOF
+sleep 0.5
+) &
 
+docker_spinner $! "Creating README.md"
+wait $!
 print_success "Created README.md"
 
-# Create VS Code debugging configuration
+# Create VS Code debugging configuration with spinner
+(
 mkdir -p .vscode
 cat > .vscode/launch.json << 'LAUNCHEOF'
 {
@@ -367,7 +385,11 @@ cat > .vscode/launch.json << 'LAUNCHEOF'
   ]
 }
 LAUNCHEOF
+sleep 0.3
+) &
 
+docker_spinner $! "Creating VS Code configuration"
+wait $!
 print_success "Created VS Code configuration"
 
 print_divider
@@ -388,13 +410,24 @@ folders=(
 )
 
 total=${#folders[@]}
-current=0
 
+# Create folders with spinner
+(
+for folder in "${folders[@]}"; do
+    mkdir -p "src/$folder"
+done
+sleep 0.5
+) &
+
+docker_spinner $! "Creating modular folder structure"
+wait $!
+
+echo ""
+# Show progress after spinner completes
+current=0
 for folder in "${folders[@]}"; do
     current=$((current + 1))
-    mkdir -p "src/$folder"
     show_progress $current $total "$folder"
-    sleep 0.05
 done
 
 echo ""
@@ -403,7 +436,7 @@ print_success "Project structure created"
 print_divider
 
 # Final summary
-print_header "Setup complete"
+print_header "Setup Complete"
 
 printf "${DIM}"
 echo "  ${PROJECT_NAME}/"
@@ -424,7 +457,7 @@ printf "${NC}"
 
 print_divider
 
-printf "${LIGHT_GRAY}Next steps:${NC}\n\n"
+printf "${ORANGE}Next steps:${NC}\n\n"
 printf "  ${DIM}cd ${PROJECT_NAME}${NC}\n"
 printf "  ${DIM}npm run dev${NC}\n"
 echo ""

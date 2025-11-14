@@ -9,12 +9,13 @@ This repository contains a bash script (`initworker.sh`) that automates the setu
 - Creates a comprehensive `README.md` with project structure and best practices.
 - Sets up a modular `src/` directory structure: `configs/`, `controllers/`, `helpers/`, `middlewares/`, `models/`, `routes/`, `types/`, and `utils/`.
 - Initializes a git repository (no deployment during setup).
-- **Claude Code CLI-style interface** with clean, professional animations:
-  - Simple dots loading animation ("..." cycling)
-  - Subtle section dividers and headers
-  - Minimalist color palette (gray, light gray, blue, green)
+- **Docker-inspired CLI interface** with professional animations:
+  - Docker-style rotating spinner `[|] [-] [/] [\]` for active processes
+  - Orange highlights for important text and headers
+  - Minimalist color palette (gray, light gray, blue, green, orange)
   - Clean status indicators (✓ success, ✗ error, → steps)
   - Progress counters for folder creation [1/8], [2/8], etc.
+  - Spinners for each step showing active processing
   - Professional, distraction-free output
 
 ## Prerequisites

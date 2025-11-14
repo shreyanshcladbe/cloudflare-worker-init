@@ -1,203 +1,114 @@
 #!/bin/bash
 
 # ============================================================================
-# Enhanced Cloudflare Worker Project Setup Script
-# With animations and visual improvements using pure bash
+# Cloudflare Worker Project Setup Script
+# Claude Code CLI-style animations using pure bash
 # ============================================================================
 
-# Enhanced Color Palette
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
-ORANGE='\033[38;5;208m'
-WHITE='\033[1;37m'
+# Minimalist Color Palette (Claude Code style)
+GRAY='\033[38;5;240m'
+LIGHT_GRAY='\033[38;5;250m'
+BLUE='\033[38;5;75m'
+GREEN='\033[38;5;78m'
+RED='\033[38;5;203m'
+YELLOW='\033[38;5;221m'
+CYAN='\033[38;5;117m'
+WHITE='\033[37m'
 BOLD='\033[1m'
 DIM='\033[2m'
 NC='\033[0m'
 
 # ============================================================================
-# Animation Functions
+# Claude Code-style Animation Functions
 # ============================================================================
 
-# Spinner animation for long-running tasks
-spinner() {
-    local pid=$1
-    local message=$2
-    local delay=0.08
-    local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+# Simple dots animation (Claude Code style)
+show_loading() {
+    local message="$1"
+    local pid=$2
+    local dots=0
 
     while kill -0 $pid 2>/dev/null; do
-        local temp=${spinstr#?}
-        printf "\r${CYAN}  [%c]${NC} ${WHITE}%s${NC}" "$spinstr" "$message"
-        spinstr=$temp${spinstr%"$temp"}
-        sleep $delay
+        local dot_str=""
+        for ((i=0; i<dots; i++)); do
+            dot_str="${dot_str}."
+        done
+        printf "\r  ${GRAY}${message}${dot_str}   ${NC}"
+        dots=$(( (dots + 1) % 4 ))
+        sleep 0.4
     done
 
     wait $pid
-    local exit_code=$?
-
-    if [ $exit_code -eq 0 ]; then
-        printf "\r${GREEN}  [✓]${NC} ${WHITE}%s${NC}\n" "$message"
-    else
-        printf "\r${RED}  [✗]${NC} ${WHITE}%s${NC}\n" "$message"
-    fi
-
-    return $exit_code
+    return $?
 }
 
-# Progress bar animation
-progress_bar() {
-    local current=$1
-    local total=$2
-    local width=40
-    local percentage=$((current * 100 / total))
-    local filled=$((current * width / total))
-    local empty=$((width - filled))
-
-    printf "\r${ORANGE}  ["
-    printf "${GREEN}%${filled}s" | tr ' ' '█'
-    printf "${DIM}%${empty}s" | tr ' ' '░'
-    printf "${ORANGE}] ${WHITE}%3d%%${NC}" "$percentage"
-
-    if [ $current -eq $total ]; then
-        echo ""
-    fi
-}
-
-# Typewriter effect for text
-typewriter() {
-    local text="$1"
-    local delay=${2:-0.02}
-    local color=${3:-$WHITE}
-
-    for (( i=0; i<${#text}; i++ )); do
-        printf "${color}%s${NC}" "${text:$i:1}"
-        sleep $delay
-    done
-    echo ""
-}
-
-# Print a decorative box
-print_box() {
-    local text="$1"
-    local color=${2:-$ORANGE}
-    local padding=2
-    local text_length=${#text}
-    local box_width=$((text_length + padding * 2))
-
-    printf "${color}"
-    printf '╔'
-    printf '═%.0s' $(seq 1 $box_width)
-    printf '╗\n'
-    printf "║%${padding}s%s%${padding}s║\n" "" "$text" ""
-    printf '╚'
-    printf '═%.0s' $(seq 1 $box_width)
-    printf '╝'
-    printf "${NC}\n"
-}
-
-# Print step indicator
+# Simple step indicator
 print_step() {
-    local step=$1
-    local total=$2
-    local message="$3"
+    local message="$1"
     echo ""
-    echo -e "${ORANGE}${BOLD}[${step}/${total}]${NC} ${WHITE}${message}${NC}"
+    printf "${DIM}→${NC} ${WHITE}${message}${NC}\n"
 }
 
-# Success animation with checkmark
-success_msg() {
+# Success message (subtle)
+print_success() {
     local message="$1"
-    printf "${GREEN}  ✓${NC} ${WHITE}%s${NC}\n" "$message"
+    printf "\r  ${GREEN}✓${NC} ${LIGHT_GRAY}${message}${NC}\n"
 }
 
 # Error message
-error_msg() {
+print_error() {
     local message="$1"
-    printf "${RED}  ✗${NC} ${WHITE}%s${NC}\n" "$message"
+    printf "\r  ${RED}✗${NC} ${WHITE}${message}${NC}\n"
 }
 
 # Info message
-info_msg() {
+print_info() {
     local message="$1"
-    printf "${CYAN}  ℹ${NC} ${DIM}%s${NC}\n" "$message"
+    printf "  ${DIM}${message}${NC}\n"
 }
 
-# Warning message
-warning_msg() {
-    local message="$1"
-    printf "${YELLOW}  ⚠${NC} ${WHITE}%s${NC}\n" "$message"
-}
-
-# Animated banner
-show_banner() {
-    clear
+# Section divider (subtle)
+print_divider() {
     echo ""
-    printf "${ORANGE}"
-    echo "    ╔═══════════════════════════════════════════════════════╗"
-    sleep 0.1
-    echo "    ║                                                       ║"
-    sleep 0.1
-    echo "    ║        ☁  Cloudflare Worker Project Setup  ☁         ║"
-    sleep 0.1
-    echo "    ║                                                       ║"
-    sleep 0.1
-    echo "    ╚═══════════════════════════════════════════════════════╝"
-    printf "${NC}"
+    printf "${DIM}────────────────────────────────────────────────────────${NC}\n"
     echo ""
-    sleep 0.3
 }
 
-# Pulsing text effect
-pulse_text() {
+# Simple header
+print_header() {
     local text="$1"
-    local cycles=${2:-2}
-
-    for (( i=0; i<cycles; i++ )); do
-        printf "\r${BOLD}${ORANGE}%s${NC}" "$text"
-        sleep 0.4
-        printf "\r${DIM}${ORANGE}%s${NC}" "$text"
-        sleep 0.4
-    done
-    printf "\r${ORANGE}%s${NC}\n" "$text"
+    echo ""
+    printf "${BOLD}${WHITE}${text}${NC}\n"
+    echo ""
 }
 
-# Loading dots animation
-loading_dots() {
-    local message="$1"
-    local duration=${2:-3}
-    local end_time=$((SECONDS + duration))
+# Simple progress indicator (Claude Code style)
+show_progress() {
+    local current=$1
+    local total=$2
+    local item=$3
 
-    while [ $SECONDS -lt $end_time ]; do
-        printf "\r${CYAN}  %s${NC}   " "$message"
-        sleep 0.3
-        printf "\r${CYAN}  %s.${NC}  " "$message"
-        sleep 0.3
-        printf "\r${CYAN}  %s..${NC} " "$message"
-        sleep 0.3
-        printf "\r${CYAN}  %s...${NC}" "$message"
-        sleep 0.3
-    done
-    printf "\r${GREEN}  %s... Done!${NC}\n" "$message"
+    printf "  ${DIM}[${current}/${total}]${NC} ${LIGHT_GRAY}${item}${NC}\n"
 }
 
-# Run command with spinner
-run_with_spinner() {
+# Spinner for background tasks (simple dots)
+run_with_loading() {
     local message="$1"
-    local command="$2"
+    shift
+    local cmd="$@"
 
-    $command > /tmp/cmd_output.log 2>&1 &
+    $cmd > /tmp/cmd_output.log 2>&1 &
     local pid=$!
 
-    spinner $pid "$message"
+    show_loading "$message" $pid
     local exit_code=$?
 
-    if [ $exit_code -ne 0 ]; then
+    if [ $exit_code -eq 0 ]; then
+        print_success "$message"
+    else
+        print_error "$message"
+        echo ""
         cat /tmp/cmd_output.log
-        rm -f /tmp/cmd_output.log
     fi
 
     rm -f /tmp/cmd_output.log
@@ -208,37 +119,35 @@ run_with_spinner() {
 # Main Script
 # ============================================================================
 
-# Show animated banner
-show_banner
+# Clear screen for clean start
+clear
 
-# Project name input with styling
+# Simple header
+print_header "Cloudflare Worker Setup"
+
+# Project name input
 if [ -n "$1" ]; then
     PROJECT_NAME="$1"
-    info_msg "Using provided project name: ${BOLD}${PROJECT_NAME}${NC}"
+    print_info "Project: ${PROJECT_NAME}"
 elif [ -n "$PROJECT_NAME" ]; then
-    info_msg "Using environment variable: ${BOLD}${PROJECT_NAME}${NC}"
+    print_info "Project: ${PROJECT_NAME}"
 else
     echo ""
-    typewriter "  Please enter your project name:" 0.03 "$ORANGE"
-    printf "  ${CYAN}→${NC} "
+    printf "  ${LIGHT_GRAY}Project name: ${NC}"
     read -r PROJECT_NAME
 fi
 
 if [ -z "$PROJECT_NAME" ]; then
     echo ""
-    error_msg "No project name provided. Exiting."
+    print_error "No project name provided"
     exit 1
 fi
 
-echo ""
-print_box "Creating Project: ${PROJECT_NAME}" "$GREEN"
-echo ""
-sleep 0.5
+print_divider
 
-# Step 1: Initialize Cloudflare Worker
-TOTAL_STEPS=6
-print_step 1 $TOTAL_STEPS "Initializing Cloudflare Worker project"
-info_msg "This may take a few minutes while dependencies are installed..."
+# Step 1: Initialize project
+print_step "Initializing Cloudflare Worker project"
+print_info "This may take a few minutes..."
 echo ""
 
 npx create-cloudflare@latest --platform=workers "$PROJECT_NAME" \
@@ -248,38 +157,38 @@ npx create-cloudflare@latest --platform=workers "$PROJECT_NAME" \
     --git=true \
     --deploy=false > /tmp/create_output.log 2>&1 &
 
-spinner $! "Installing dependencies and setting up project"
+show_loading "Installing dependencies" $!
 
 if [ $? -ne 0 ]; then
-    echo ""
-    error_msg "Error during create-cloudflare. Check logs below:"
+    print_error "Project initialization failed"
     cat /tmp/create_output.log
     rm -f /tmp/create_output.log
     exit 1
 fi
 
+print_success "Project initialized"
 rm -f /tmp/create_output.log
-echo ""
-success_msg "Project initialized successfully"
 
 # Wait for file operations
 sleep 1
 
 # Navigate to project directory
 if [ ! -d "$PROJECT_NAME" ]; then
-    echo ""
-    error_msg "Project directory was not created. Exiting."
+    print_error "Project directory not found"
     exit 1
 fi
 
 cd "$PROJECT_NAME" || {
-    error_msg "Could not navigate to project directory."
+    print_error "Cannot navigate to project directory"
     exit 1
 }
 
-# Step 2: Configure wrangler.jsonc
-print_step 2 $TOTAL_STEPS "Configuring wrangler.jsonc"
+print_divider
 
+# Step 2: Configure files
+print_step "Configuring project files"
+
+# Configure wrangler.jsonc
 TEMP_FILE=$(mktemp)
 {
     echo "// PLACE ENVIORNMENT VARIABLES OVER HERE INSTEAD OF .env BECAUSE ITS A WRANGLER PROJECT AND WRANGLER USES THIS FILE TO LOAD"
@@ -288,11 +197,9 @@ TEMP_FILE=$(mktemp)
 } > "$TEMP_FILE"
 mv "$TEMP_FILE" wrangler.jsonc
 
-success_msg "wrangler.jsonc configured"
+print_success "Configured wrangler.jsonc"
 
-# Step 3: Create comprehensive README
-print_step 3 $TOTAL_STEPS "Generating comprehensive README.md"
-
+# Create README.md
 cat > README.md << 'READMEEOF'
 # Template Worker Project
 
@@ -416,11 +323,9 @@ The application follows a modular flow where:
 - Avoid committing the `node_modules/` folder to version control; ensure it's excluded via `.gitignore`.
 READMEEOF
 
-success_msg "README.md created with comprehensive documentation"
+print_success "Created README.md"
 
-# Step 4: Create VS Code debugging configuration
-print_step 4 $TOTAL_STEPS "Setting up VS Code debugging configuration"
-
+# Create VS Code debugging configuration
 mkdir -p .vscode
 cat > .vscode/launch.json << 'LAUNCHEOF'
 {
@@ -463,92 +368,63 @@ cat > .vscode/launch.json << 'LAUNCHEOF'
 }
 LAUNCHEOF
 
-success_msg "VS Code debugging configured"
+print_success "Created VS Code configuration"
 
-# Step 5: Create modular folder structure
-print_step 5 $TOTAL_STEPS "Creating modular folder structure"
+print_divider
+
+# Step 3: Create folder structure
+print_step "Creating project structure"
+echo ""
 
 folders=(
-    "src/configs"
-    "src/controllers"
-    "src/helpers"
-    "src/middlewares"
-    "src/models"
-    "src/routes"
-    "src/types"
-    "src/utils"
+    "configs"
+    "controllers"
+    "helpers"
+    "middlewares"
+    "models"
+    "routes"
+    "types"
+    "utils"
 )
 
-echo ""
-for i in "${!folders[@]}"; do
-    folder="${folders[$i]}"
-    mkdir -p "$folder"
-    progress_bar $((i + 1)) ${#folders[@]}
-    sleep 0.1
+total=${#folders[@]}
+current=0
+
+for folder in "${folders[@]}"; do
+    current=$((current + 1))
+    mkdir -p "src/$folder"
+    show_progress $current $total "$folder"
+    sleep 0.05
 done
 
 echo ""
-success_msg "Folder structure created successfully"
+print_success "Project structure created"
 
-# Step 6: Final summary
-print_step 6 $TOTAL_STEPS "Finalizing setup"
-sleep 0.5
+print_divider
 
-echo ""
-echo ""
-printf "${GREEN}${BOLD}"
-echo "    ╔═══════════════════════════════════════════════════════╗"
-echo "    ║                                                       ║"
-echo "    ║              ✨  Setup Complete!  ✨                  ║"
-echo "    ║                                                       ║"
-echo "    ╚═══════════════════════════════════════════════════════╝"
-printf "${NC}"
-echo ""
-echo ""
+# Final summary
+print_header "Setup complete"
 
-# Display project structure with tree
-echo -e "${CYAN}${BOLD}Project Structure:${NC}"
-echo ""
-echo -e "${DIM}"
+printf "${DIM}"
 echo "  ${PROJECT_NAME}/"
-echo "  ├── .vscode/"
-echo "  │   └── launch.json          ${ORANGE}(VS Code debug config)${NC}${DIM}"
 echo "  ├── src/"
-echo "  │   ├── configs/             ${ORANGE}(Service configurations)${NC}${DIM}"
-echo "  │   ├── controllers/         ${ORANGE}(Business logic)${NC}${DIM}"
-echo "  │   ├── helpers/             ${ORANGE}(Reusable functions)${NC}${DIM}"
-echo "  │   ├── middlewares/         ${ORANGE}(Request/response processing)${NC}${DIM}"
-echo "  │   ├── models/              ${ORANGE}(Data models & schemas)${NC}${DIM}"
-echo "  │   ├── routes/              ${ORANGE}(Endpoint definitions)${NC}${DIM}"
-echo "  │   ├── types/               ${ORANGE}(TypeScript types)${NC}${DIM}"
-echo "  │   ├── utils/               ${ORANGE}(Utility functions)${NC}${DIM}"
-echo "  │   └── index.ts             ${ORANGE}(Entry point)${NC}${DIM}"
-echo "  ├── test/                    ${ORANGE}(Test files)${NC}${DIM}"
-echo "  ├── package.json"
-echo "  ├── tsconfig.json"
-echo "  ├── wrangler.jsonc           ${ORANGE}(Cloudflare config)${NC}${DIM}"
-echo "  └── README.md"
-echo -e "${NC}"
-echo ""
+echo "  │   ├── configs/"
+echo "  │   ├── controllers/"
+echo "  │   ├── helpers/"
+echo "  │   ├── middlewares/"
+echo "  │   ├── models/"
+echo "  │   ├── routes/"
+echo "  │   ├── types/"
+echo "  │   ├── utils/"
+echo "  │   └── index.ts"
+echo "  ├── test/"
+echo "  ├── .vscode/"
+echo "  └── wrangler.jsonc"
+printf "${NC}"
 
-# Next steps with styling
-echo -e "${ORANGE}${BOLD}Next Steps:${NC}"
-echo ""
-echo -e "  ${CYAN}1.${NC} ${WHITE}Navigate to your project:${NC}"
-echo -e "     ${DIM}\$ cd ${PROJECT_NAME}${NC}"
-echo ""
-echo -e "  ${CYAN}2.${NC} ${WHITE}Start development server:${NC}"
-echo -e "     ${DIM}\$ npm run start${NC}"
-echo ""
-echo -e "  ${CYAN}3.${NC} ${WHITE}Deploy to Cloudflare:${NC}"
-echo -e "     ${DIM}\$ npm run deploy${NC}"
-echo ""
-echo -e "  ${CYAN}4.${NC} ${WHITE}Debug in VS Code:${NC}"
-echo -e "     ${DIM}Open in VS Code and press F5${NC}"
-echo -e "     ${DIM}Select 'Debug Cloudflare Worker (dev)' configuration${NC}"
-echo ""
-echo ""
+print_divider
 
-# Final celebratory message
-pulse_text "  🚀  Happy coding with Cloudflare Workers!  🚀"
+printf "${LIGHT_GRAY}Next steps:${NC}\n\n"
+printf "  ${DIM}cd ${PROJECT_NAME}${NC}\n"
+printf "  ${DIM}npm run dev${NC}\n"
 echo ""
